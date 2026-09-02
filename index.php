@@ -772,7 +772,7 @@ function extractSocialUsername($url) {
     <p class="hero-tagline">"<?= htmlspecialchars($settings['hero_tagline']) ?>"</p>
     <p class="hero-sub"><?= htmlspecialchars($settings['hero_sub']) ?></p>
   </div>
-  <div class="scroll-cue"><span class="line"></span> gulir</div>
+  <div class="scroll-cue"><span class="line"></span> scroll</div>
 </header>
 
 <div class="divider">
