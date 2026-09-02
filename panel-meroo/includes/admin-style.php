@@ -153,7 +153,7 @@
   th, td{ text-align:left; padding:12px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
   th{
     font-family:'JetBrains Mono', monospace; color:var(--ink-dim);
-    font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em;
+    font-weight:500; font-size:0.78rem; letter-spacing:0.02em;
     white-space:nowrap;
   }
   td img{ width:52px; height:52px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
@@ -167,11 +167,30 @@
   .actions{ display:flex; gap:6px; flex-wrap:wrap; }
 
   @media (max-width:640px){
-    table{ min-width:520px; font-size:0.82rem; }
-    th, td{ padding:10px 8px; }
-    .actions{ gap:5px; }
-    .btn.small{ padding:6px 11px; font-size:0.68rem; }
     .card{ padding:18px 16px; border-radius:10px; }
+
+    /* table becomes stacked cards on mobile */
+    .table-wrap{ overflow-x:visible; }
+    table{ min-width:0; }
+    thead{ display:none; }
+    table, tbody, tr, td{ display:block; width:100%; }
+    tr{
+      border:1px solid var(--line); border-radius:10px;
+      margin-bottom:14px; padding:14px; background:rgba(168,121,201,0.04);
+    }
+    td{
+      border-bottom:none; padding:6px 0;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    td:not(:last-child){ border-bottom:1px dashed var(--line); }
+    td::before{
+      content:attr(data-label);
+      font-family:'JetBrains Mono', monospace; font-size:0.7rem;
+      color:var(--ink-dim); flex-shrink:0;
+    }
+    td img{ width:64px; height:64px; margin-left:auto; }
+    td:has(img){ justify-content:space-between; }
+    .actions{ justify-content:flex-end; width:100%; }
   }
 
   @media (max-width:420px){
@@ -191,7 +210,7 @@
   }
   .login-box .sub{
     text-align:center; color:var(--ink-dim); font-family:'JetBrains Mono', monospace;
-    font-size:0.76rem; letter-spacing:0.08em; text-transform:uppercase;
+    font-size:0.82rem; letter-spacing:0.02em;
     margin-bottom:24px;
   }
   .login-box .btn{ width:100%; text-align:center; margin-top:8px; }
