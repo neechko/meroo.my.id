@@ -819,7 +819,7 @@ function extractSocialUsername($url) {
   <div class="section-inner">
     <div class="section-head reveal">
       <div class="eyebrow">what I'm into</div>
-      <h2>Three things <em>I always look</em> forward to</h2>
+      <h2>Three things I <em>always look</em> forward to</h2>
       <p>Not in order of priority, just three things that are part of my daily routine — though honestly, the first two win more often lol.</p>
     </div>
     <div class="interest-grid">
