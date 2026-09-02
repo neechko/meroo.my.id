@@ -751,11 +751,11 @@ function extractSocialUsername($url) {
   <div class="brand">mer<span>oo__</span></div>
   <button class="nav-toggle" id="navToggle" aria-label="Buka menu">☰</button>
   <div class="nav-links" id="navLinks">
-    <a href="#about">Tentang</a>
-    <a href="#interests">Minat</a>
-    <a href="#characters">Tercinta</a>
-    <a href="#gallery">Galeri</a>
-    <a href="#connect">Kontak</a>
+    <a href="#about">About</a>
+    <a href="#interests">Interests</a>
+    <a href="#characters">Beloved</a>
+    <a href="#gallery">Gallery</a>
+    <a href="#connect">Connect</a>
   </div>
 </nav>
 
@@ -818,28 +818,28 @@ function extractSocialUsername($url) {
 <section id="interests">
   <div class="section-inner">
     <div class="section-head reveal">
-      <div class="eyebrow">apa yang gw tekuni</div>
-      <h2>Tiga hal yang <em>selalu gw tunggu</em> waktunya</h2>
-      <p>Nggak berurutan prioritas, cuma tiga hal yang jadi rutinitas gw tiap hari — walau jujur, dua yang pertama lebih sering menang wkwk.</p>
+      <div class="eyebrow">what I'm into</div>
+      <h2>Three things <em>I always look</em> forward to</h2>
+      <p>Not in order of priority, just three things that are part of my daily routine — though honestly, the first two win more often lol.</p>
     </div>
     <div class="interest-grid">
       <div class="interest-card reveal tilt">
         <div class="num mono">01</div>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 5.8L20 9l-4 4.6L17 20l-5-3-5 3 1-6.4L4 9l5.6-1.2L12 2z"/></svg>
         <h3>Genshin Impact</h3>
-        <p>Explore Teyvat, koleksi karakter, sampe overthinking mikirin build "paling meta". Odette udah pasti istri gw, no debat.</p>
+        <p>Exploring Teyvat, collecting characters, and overthinking about the "most meta" build. Odette is definitely my waifu, no debate.</p>
       </div>
       <div class="interest-card reveal tilt">
         <div class="num mono">02</div>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg>
-        <h3>Nonton Anime</h3>
-        <p>Dari slice of life sampai yang genrenya rame. List lengkapnya ada di MyAnimeList gw, cek aja di bagian link.</p>
+        <h3>Watching Anime</h3>
+        <p>From slice of life to the more intense genres. Full list's on my MyAnimeList, just check the link section.</p>
       </div>
       <div class="interest-card reveal tilt">
         <div class="num mono">03</div>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 4L2 12l6 8M16 4l6 8-6 8"/></svg>
         <h3>IT &amp; Coding</h3>
-        <p>Suka ngoprek proyek kecil-kecilan dan nyoba hal baru di dunia teknologi, kalau lagi ada waktu (dan niat).</p>
+        <p>I enjoy tinkering with small side projects and trying out new things in tech, whenever I have the time (and the motivation).</p>
       </div>
     </div>
   </div>
@@ -858,9 +858,9 @@ function extractSocialUsername($url) {
 <section id="characters">
   <div class="section-inner">
     <div class="section-head reveal">
-      <div class="eyebrow">yang paling dekat di hati</div>
-      <h2>My <em>istri</em></h2>
-      <p>Karakter gacha yang lewat udah banyak banget, tapi cuma segelintir yang benar-benar nempel jadi favorit sejati.</p>
+      <div class="eyebrow">closest to my heart</div>
+      <h2>My <em>wife</em></h2>
+      <p>So many gacha characters have come and gone, but only a few truly stuck as real favorites.</p>
     </div>
     <div class="char-grid">
       <?php if ($mainFeatured):
@@ -915,13 +915,13 @@ function extractSocialUsername($url) {
 <section id="gallery">
   <div class="section-inner">
     <div class="section-head reveal">
-      <div class="eyebrow">koleksi kenangan</div>
+      <div class="eyebrow">a collection of memories</div>
       <h2>Galeri &amp; <em>Gacha</em></h2>
-      <p>Kumpulan splash art favorit gw. Klik buat liat lebih gede, atau coba tarik wish di bawah — dijamin selalu 5★.</p>
+      <p>A collection of my favorite splash art. Click to see it bigger, or try a wish pull below — guaranteed always 5★.</p>
     </div>
 
     <div class="gallery-tabs" id="galleryTabs">
-      <button class="gtab active" data-filter="all" type="button">Semua</button>
+      <button class="gtab active" data-filter="all" type="button">All</button>
       <?php foreach ($tagRows as $tr): ?>
       <button class="gtab" data-filter="<?= htmlspecialchars($tr['tag']) ?>" type="button"><?= htmlspecialchars(ucfirst($tr['tag'])) ?></button>
       <?php endforeach; ?>
@@ -932,29 +932,29 @@ function extractSocialUsername($url) {
     <?php if (count($galleryDataJs) > 0): ?>
     <div class="gacha-box reveal">
       <div class="gacha-head">
-        <span class="eyebrow" style="margin-bottom:0">wishing bermain-main</span>
-        <h3>Coba Peruntunganmu</h3>
-        <p>Tarik satu wish, lihat siapa yang muncul dari galeri. Nggak ada pity system — semuanya emang udah 5★.</p>
+        <span class="eyebrow" style="margin-bottom:0">a bit of playful wishing</span>
+        <h3>Try Your Luck</h3>
+        <p>Pull a wish and see who shows up from the gallery. No pity system — everyone's already 5★ anyway.</p>
       </div>
       <div class="gacha-stage" id="gachaStage">
         <span class="gacha-placeholder">?</span>
         <img id="gachaImg" src="" alt="">
       </div>
       <div class="gacha-result" id="gachaResult"></div>
-      <button class="gacha-btn" id="gachaBtn" type="button">Tarik Wish ✦</button>
-      <div class="gacha-stats mono" id="gachaStats">total tarikan: 0</div>
+      <button class="gacha-btn" id="gachaBtn" type="button">Pull Wish ✦</button>
+      <div class="gacha-stats mono" id="gachaStats">total pulls: 0</div>
     </div>
 
     <div class="memory-box reveal">
       <div class="memory-head">
-        <span class="eyebrow" style="margin-bottom:0">latihan ingatan</span>
-        <h3>Cocokkan Kartunya</h3>
-        <p>Buka dua kartu, cari pasangan gambar yang sama. Semua kartu bakal ketebak kalau udah kebuka semua.</p>
+        <span class="eyebrow" style="margin-bottom:0">memory practice</span>
+        <h3>Match the Cards</h3>
+        <p>Flip two cards, find the matching pair. All cards will be revealed once they're all flipped open.</p>
       </div>
       <div class="memory-stats-row">
-        <span class="memory-stat">Langkah: <b id="memoryMoves">0</b></span>
-        <span class="memory-stat">Pasangan: <b id="memoryPairs">0</b>/<b id="memoryTotalPairs">6</b></span>
-        <button class="memory-reset" id="memoryReset" type="button">Acak Ulang</button>
+        <span class="memory-stat">Moves: <b id="memoryMoves">0</b></span>
+        <span class="memory-stat">Pairs: <b id="memoryPairs">0</b>/<b id="memoryTotalPairs">6</b></span>
+        <button class="memory-reset" id="memoryReset" type="button">Shuffle Again</button>
       </div>
       <div class="memory-grid" id="memoryGrid"></div>
       <div class="memory-msg" id="memoryMsg"></div>
@@ -978,9 +978,9 @@ function extractSocialUsername($url) {
 <section id="connect">
   <div class="section-inner">
     <div class="section-head reveal">
-      <div class="eyebrow">temukan gw di sini</div>
-      <h2>Ayo <em>terhubung</em></h2>
-      <p>Kartu yang keliatan redup belum ada link aktif, nyusul kalau udah siap.</p>
+      <div class="eyebrow">find me here</div>
+      <h2>Let's <em>connect</em></h2>
+      <p>Cards that look dimmed don't have an active link yet, coming soon once they're ready.</p>
     </div>
     <div class="connect-grid">
       <?php
@@ -1260,7 +1260,7 @@ function extractSocialUsername($url) {
 
   let pullCount = Number(localStorage.getItem('meroo_gacha_pulls') || 0);
   let lastPullSrc = null;
-  if(gachaStats) gachaStats.textContent = `total tarikan: ${pullCount}`;
+  if(gachaStats) gachaStats.textContent = `total pulls: ${pullCount}`;
 
   function pickGachaItem(){
     let pick;
