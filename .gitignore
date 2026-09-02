@@ -2,5 +2,4 @@
 *.well-known
 *Backup
 .git
-database.sql
 plan.txt
