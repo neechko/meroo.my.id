@@ -1,3 +1,52 @@
+<?php
+require_once __DIR__ . '/db.php';
+
+$settings = get_settings($pdo);
+
+// gambar galeri biasa (dipakai grid, tab filter, gacha, memory game)
+$galleryRows = $pdo->query('SELECT * FROM gallery WHERE is_featured = 0 ORDER BY sort_order ASC, id ASC')->fetchAll();
+
+// gambar karakter favorit (section "Tercinta")
+$featuredRows = $pdo->query('SELECT * FROM gallery WHERE is_featured = 1 ORDER BY sort_order ASC, id ASC')->fetchAll();
+$mainFeatured = $featuredRows[0] ?? null;
+$subFeatured  = array_slice($featuredRows, 1, 2);
+
+// daftar tag unik untuk tombol filter galeri
+$tagRows = $pdo->query('SELECT DISTINCT tag FROM gallery WHERE is_featured = 0 ORDER BY tag ASC')->fetchAll();
+
+// data untuk JS (gacha & memory game), path gambar dibuat relatif dari root situs
+$galleryDataJs = array_map(function ($r) {
+    return [
+        'src'   => $r['image_path'],
+        'tag'   => $r['tag'],
+        'name'  => $r['name'],
+        'quote' => $r['quote'] ?: ($r['name'] . ' — koleksi galeri'),
+    ];
+}, $galleryRows);
+
+function about_paragraphs(string $text): string {
+    $out = '';
+    foreach (preg_split('/\n\s*\n/', trim($text)) as $p) {
+        $p = trim($p);
+        if ($p !== '') $out .= '<p>' . nl2br(htmlspecialchars($p, ENT_QUOTES, 'UTF-8')) . '</p>' . "\n";
+    }
+    return $out;
+}
+
+//untuk menampilkan @username dari link sosial media, misal https://twitter.com/username -> username
+function extractSocialUsername($url) {
+    $path = parse_url($url, PHP_URL_PATH);
+    if (!$path) return '';
+    // Bersihkan slash di awal/akhir
+    $path = trim($path, '/');
+    // Ambil segmen terakhir path (biasanya username)
+    $segments = explode('/', $path);
+    $username = end($segments);
+    // Buang query string kalau ada yg nyangkut, dan decode
+    $username = urldecode($username);
+    return $username;
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -712,16 +761,16 @@
 
 <header class="hero">
   <div class="hero-bg">
-    <img src="assets/castorice-hero.jpg" alt="" aria-hidden="true">
+    <img src="<?= htmlspecialchars($settings['hero_bg_image']) ?>" alt="" aria-hidden="true">
   </div>
   <svg class="moon" viewBox="0 0 100 100" fill="none">
     <path d="M62 15C45 20 34 36 34 54c0 22 18 40 40 40 5 0 10-1 14-3-10 8-23 12-37 10C25 98 6 78 5 51 4 26 22 6 47 3c5.5 6 10.5 8 15 12z" fill="var(--gold)" opacity="0.9"/>
   </svg>
   <div class="hero-content">
-    <div class="eyebrow">selamat datang di sudut kecil gw</div>
+    <div class="eyebrow"><?= htmlspecialchars($settings['hero_eyebrow']) ?></div>
     <h1 class="display">mer<em>oo__</em></h1>
-    <p class="hero-tagline">"Sering muter-muter di Amphoreus sama Teyvat, sambil masih ada kode yang belum kelar."</p>
-    <p class="hero-sub">IT enthusiast, wibu pemula, sesekali masih maen Genshin Impact (HSR-nya udah pensi). Ini sudut kecil gw, isinya satu — bonus satu lagi — karakter yang paling nempel di hati.</p>
+    <p class="hero-tagline">"<?= htmlspecialchars($settings['hero_tagline']) ?>"</p>
+    <p class="hero-sub"><?= htmlspecialchars($settings['hero_sub']) ?></p>
   </div>
   <div class="scroll-cue"><span class="line"></span> gulir</div>
 </header>
@@ -740,12 +789,11 @@
   <div class="section-inner">
     <div class="about-grid">
       <div class="about-portrait reveal">
-        <img src="assets/castorice-chibi.jpg" alt="Ilustrasi Castorice memeluk boneka beruang">
+        <img src="<?= htmlspecialchars($settings['about_image']) ?>" alt="Foto profil / portrait">
       </div>
       <div class="about-text reveal">
-        <p class="display">Halo, gw meroo__</p>
-        <p>Hari-hari gw kebagi antara baca <em>error log</em> sama baca alur cerita game/anime. Entah kenapa gw suka hal yang rapi — code architecture atau desain karakter yang detailnya kebangetan, dua-duanya bikin betah.</p>
-        <p>Anime sama game jadi pelarian gw pas capek. Kadang maraton semalaman, kadang cuma liatin loading screen Genshin sambil mikirin bug yang belum kelar.</p>
+        <p class="display"><?= htmlspecialchars($settings['about_greeting']) ?></p>
+        <?= about_paragraphs($settings['about_text']) ?>
         <div class="tag-row">
           <span class="tag">genshin impact</span>
           <span class="tag">anime</span>
@@ -815,33 +863,41 @@
       <p>Karakter gacha yang lewat udah banyak banget, tapi cuma segelintir yang benar-benar nempel jadi favorit sejati.</p>
     </div>
     <div class="char-grid">
-      <div class="char-card reveal" data-char="castorice" data-caption="Castorice — yang paling tercinta">
-        <img src="assets/castorice-hero.jpg" alt="Castorice, Honkai: Star Rail">
+      <?php if ($mainFeatured):
+        $cap = $mainFeatured['name'] . ' — ' . preg_replace('/^✦\s*/', '', $mainFeatured['featured_subtitle'] ?: '');
+      ?>
+      <div class="char-card reveal" data-char="<?= htmlspecialchars($mainFeatured['tag']) ?>" data-char-name="<?= htmlspecialchars($mainFeatured['name']) ?>" data-caption="<?= htmlspecialchars($cap) ?>">
+        <img src="<?= htmlspecialchars($mainFeatured['image_path']) ?>" alt="<?= htmlspecialchars($mainFeatured['name']) ?>">
         <button class="zoom-hint" type="button" aria-label="Lihat gambar penuh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M9 11h4M11 9v4"/></svg></button>
         <div class="char-info">
-          <span class="fav">✦ yang paling tercinta</span>
-          <h3>Castorice</h3>
-          <p>"i only wish that Death... may protect us." Tenang tapi sedih, lembut tapi nyimpen luka — entah kenapa dia yang paling nempel di ingatan dari semua waktu main HSR (walau sekarang udah pensi).</p>
+          <?php if ($mainFeatured['featured_subtitle']): ?><span class="fav"><?= htmlspecialchars($mainFeatured['featured_subtitle']) ?></span><?php endif; ?>
+          <h3><?= htmlspecialchars($mainFeatured['name']) ?></h3>
+          <?php if ($mainFeatured['featured_desc']): ?><p><?= nl2br(htmlspecialchars($mainFeatured['featured_desc'])) ?></p><?php endif; ?>
         </div>
       </div>
+      <?php else: ?>
+      <div class="char-card reveal" style="align-items:center; justify-content:center; min-height:200px; color:var(--ink-dim); text-align:center; padding:2rem;">
+        Belum ada karakter favorit. Tambahkan lewat panel admin.
+      </div>
+      <?php endif; ?>
+
+      <?php if ($subFeatured): ?>
       <div class="char-sub-grid">
-        <div class="char-card reveal" data-char="odette" data-caption="Odette — favorit Genshin">
-          <img src="assets/odette-hero.jpg" alt="Odette, Genshin Impact">
+        <?php foreach ($subFeatured as $sf):
+          $capSub = $sf['name'] . ' — ' . preg_replace('/^✦\s*/', '', $sf['featured_subtitle'] ?: '');
+        ?>
+        <div class="char-card reveal" data-char="<?= htmlspecialchars($sf['tag']) ?>" data-char-name="<?= htmlspecialchars($sf['name']) ?>" data-caption="<?= htmlspecialchars($capSub) ?>">
+          <img src="<?= htmlspecialchars($sf['image_path']) ?>" alt="<?= htmlspecialchars($sf['name']) ?>">
           <button class="zoom-hint" type="button" aria-label="Lihat gambar penuh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M9 11h4M11 9v4"/></svg></button>
           <div class="char-info">
-            <span class="fav">favorit Genshin</span>
-            <h3>Odette</h3>
+            <?php if ($sf['featured_subtitle']): ?><span class="fav"><?= htmlspecialchars($sf['featured_subtitle']) ?></span><?php endif; ?>
+            <h3><?= htmlspecialchars($sf['name']) ?></h3>
+            <?php if ($sf['featured_desc']): ?><p><?= nl2br(htmlspecialchars($sf['featured_desc'])) ?></p><?php endif; ?>
           </div>
         </div>
-        <div class="char-card reveal" data-char="castorice" data-caption="Castorice — sisi lain">
-          <img src="assets/castorice-side.jpg" alt="Castorice dengan kupu-kupu ungu">
-          <button class="zoom-hint" type="button" aria-label="Lihat gambar penuh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M9 11h4M11 9v4"/></svg></button>
-          <div class="char-info">
-            <span class="fav">sisi lain</span>
-            <h3>Castorice</h3>
-          </div>
-        </div>
+        <?php endforeach; ?>
       </div>
+      <?php endif; ?>
     </div>
   </div>
 </section>
@@ -866,12 +922,14 @@
 
     <div class="gallery-tabs" id="galleryTabs">
       <button class="gtab active" data-filter="all" type="button">Semua</button>
-      <button class="gtab" data-filter="castorice" type="button">Castorice</button>
-      <button class="gtab" data-filter="odette" type="button">Odette</button>
+      <?php foreach ($tagRows as $tr): ?>
+      <button class="gtab" data-filter="<?= htmlspecialchars($tr['tag']) ?>" type="button"><?= htmlspecialchars(ucfirst($tr['tag'])) ?></button>
+      <?php endforeach; ?>
     </div>
 
     <div class="gallery-grid reveal" id="galleryGrid"></div>
 
+    <?php if (count($galleryDataJs) > 0): ?>
     <div class="gacha-box reveal">
       <div class="gacha-head">
         <span class="eyebrow" style="margin-bottom:0">wishing bermain-main</span>
@@ -895,12 +953,15 @@
       </div>
       <div class="memory-stats-row">
         <span class="memory-stat">Langkah: <b id="memoryMoves">0</b></span>
-        <span class="memory-stat">Pasangan: <b id="memoryPairs">0</b>/6</span>
+        <span class="memory-stat">Pasangan: <b id="memoryPairs">0</b>/<b id="memoryTotalPairs">6</b></span>
         <button class="memory-reset" id="memoryReset" type="button">Acak Ulang</button>
       </div>
       <div class="memory-grid" id="memoryGrid"></div>
       <div class="memory-msg" id="memoryMsg"></div>
     </div>
+    <?php else: ?>
+    <p style="color:var(--ink-dim); text-align:center;">Belum ada gambar di galeri. Tambahkan lewat panel admin untuk mengaktifkan gacha &amp; game memori.</p>
+    <?php endif; ?>
   </div>
 </section>
 
@@ -922,34 +983,37 @@
       <p>Kartu yang keliatan redup belum ada link aktif, nyusul kalau udah siap.</p>
     </div>
     <div class="connect-grid">
-      <a class="connect-card reveal" href="https://www.instagram.com/kyuu_tsu?igsh=bGl6a2duOWRrNXFp" target="_blank" rel="noopener noreferrer">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>
-        <div class="meta"><span class="label">Instagram</span><span class="handle">@kyuu_tsu</span></div>
+      <?php
+      $socials = [
+        ['key' => 'social_instagram', 'label' => 'Instagram',   'icon' => '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/>'],
+        ['key' => 'social_github',    'label' => 'GitHub',      'icon' => '<path d="M12 2a10 10 0 0 0-3.16 19.5c.5.1.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.15-1.11-1.46-1.11-1.46-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.56-1.11-4.56-4.93 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.3 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.83-2.34 4.68-4.57 4.92.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z" fill="currentColor"/>', 'filled' => true],
+        ['key' => 'social_mal',       'label' => 'MyAnimeList', 'icon' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15V9l2.5 3L12 9v6M15 9v6h3"/>'],
+        ['key' => 'social_spotify',   'label' => 'Spotify',     'icon' => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>'],
+        ['key' => 'social_steam',     'label' => 'Steam',       'icon' => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/>'],
+        ['key' => 'social_x',         'label' => 'X (Twitter)', 'icon' => '<path d="M4 4l7.5 8.5L4 21h2.4l6-6.8 4.9 6.8H21l-7.9-9.3L20.6 4h-2.4l-5.5 6.2L7.4 4H4z" fill="currentColor" stroke="none"/>'],
+      ];
+      foreach ($socials as $s):
+          $url = trim($settings[$s['key']] ?? '');
+          $hasUrl = $url !== '';
+          $fillAttr = !empty($s['filled']) ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.5"';
+          $username = $hasUrl ? extractSocialUsername($url) : '';
+      ?>
+      <?php if ($hasUrl): ?>
+      <a class="connect-card reveal" href="<?= htmlspecialchars($url) ?>" target="_blank" rel="noopener noreferrer">
+          <svg class="icon" viewBox="0 0 24 24" <?= $fillAttr ?>><?= $s['icon'] ?></svg>
+          <div class="meta">
+              <span class="label"><?= htmlspecialchars($s['label']) ?></span>
+              <span class="handle"><?= $username !== '' ? htmlspecialchars('@' . $username) : 'buka tautan' ?></span>
+          </div>
       </a>
-      <a class="connect-card reveal" href="https://github.com/neechko" target="_blank" rel="noopener noreferrer">
-        <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.5c.5.1.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.15-1.11-1.46-1.11-1.46-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.56-1.11-4.56-4.93 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.3 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.83-2.34 4.68-4.57 4.92.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
-        <div class="meta"><span class="label">GitHub</span><span class="handle">neechko</span></div>
-      </a>
-      <a class="connect-card reveal" href="https://myanimelist.net/profile/meroo__" target="_blank" rel="noopener noreferrer">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15V9l2.5 3L12 9v6M15 9v6h3"/></svg>
-        <div class="meta"><span class="label">MyAnimeList</span><span class="handle">meroo__</span></div>
-      </a>
-      <a class="connect-card reveal" href="https://open.spotify.com/user/31nx7isou7yxw3s2htrem5nveqgy?si=z3S1azQ-Ti-jRavlsqkGzw&utm_source=copy-link" aria-disabled="true">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
-        <div class="meta"><span class="label">Spotify</span><span class="handle">neechko</span></div>
-      </a>
-      <a class="connect-card reveal" href="https://steamcommunity.com/profiles/76561199403751342" aria-disabled="true">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg>
-        <div class="meta"><span class="label">Steam</span><span class="handle">neechko</span></div>
-      </a>
-      <a class="connect-card reveal" href="https://x.com/neechko" aria-disabled="true">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l7.5 8.5L4 21h2.4l6-6.8 4.9 6.8H21l-7.9-9.3L20.6 4h-2.4l-5.5 6.2L7.4 4H4z" fill="currentColor" stroke="none"/></svg>
-        <div class="meta"><span class="label">X (Twitter)</span><span class="handle">neechko</span></div>
-      </a>
+      <?php else: ?>
       <div class="connect-card disabled reveal" aria-disabled="true">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3h12l3 6-9 12L3 9l3-6z"/><path d="M3 9h18M9 3l3 12 3-12"/></svg>
-        <div class="meta"><span class="label">Epic Games</span><span class="handle">neechko</span></div>
+          <svg class="icon" viewBox="0 0 24 24" <?= $fillAttr ?>><?= $s['icon'] ?></svg>
+          <div class="meta"><span class="label"><?= htmlspecialchars($s['label']) ?></span><span class="handle">segera hadir</span></div>
       </div>
+      <?php endif; ?>
+      <?php endforeach; ?>
+      
     </div>
   </div>
 </section>
@@ -963,8 +1027,8 @@
 </div>
 
 <footer>
-  <p class="display">"Nggak semua yang disayang harus ramai, cukup dikunjungi tiap malam pulang kerja."</p>
-  <p class="credit">dibuat dengan sedikit ngengat &amp; banyak <span>Castorice</span> — meroo__, 2026</p>
+  <p class="display"><?= htmlspecialchars($settings['footer_quote']) ?></p>
+  <p class="credit"><?= htmlspecialchars($settings['footer_credit']) ?></p>
 </footer>
 
 <script>
@@ -1117,8 +1181,8 @@
     }
   }
 
-  function triggerPoke(container, charKey, clickEvent){
-    const charName = charKey === 'odette' ? 'Odette' : 'Castorice';
+  function triggerPoke(container, charKey, clickEvent, displayName){
+    const charName = displayName || (charKey ? charKey.charAt(0).toUpperCase() + charKey.slice(1) : 'Dia');
     let bubble = container.querySelector('.poke-bubble');
     if(!bubble){
       bubble = document.createElement('div');
@@ -1141,36 +1205,12 @@
   document.querySelectorAll('.char-card[data-char]').forEach(card => {
     card.addEventListener('click', (e) => {
       if(e.target.closest('.zoom-hint')) return;
-      triggerPoke(card, card.dataset.char, e);
+      triggerPoke(card, card.dataset.char, e, card.dataset.charName);
     });
   });
 
-  // ---------- gallery data ----------
-  const castoriceQuotes = [
-    "Splash art yang paling sering gw jadiin wallpaper.",
-    "Detail kupu-kupunya nggak pernah gw skip pas liat.",
-    "Pose ini yang bikin gw stop scroll lama-lama.",
-    "Salah satu crop favorit dari cutscene-nya.",
-    "Ekspresi tenangnya tuh entah kenapa nenangin juga."
-  ];
-  const odetteQuotes = [
-    "Splash art rilis yang langsung gw save duluan.",
-    "Warna birunya related banget sama vibe elemen dia.",
-    "Detail aksesoris kepalanya nggak ada obat.",
-    "Close-up ini yang bikin gw makin yakin sama pilihan.",
-    "Salah satu momen dari cutscene yang paling gw suka.",
-    "Splash art versi lain, tetep top tier menurut gw."
-  ];
-  const galleryData = [
-    ...['1','2','3','4','5'].map((n,i) => ({
-      src:`assets/castorice${n}.jpg`, tag:'castorice', name:'Castorice',
-      quote: castoriceQuotes[i % castoriceQuotes.length]
-    })),
-    ...['1','2','3','4','5','6','7'].map((n,i) => ({
-      src:`assets/odette${n}.jpg`, tag:'odette', name:'Odette',
-      quote: odetteQuotes[i % odetteQuotes.length]
-    }))
-  ];
+  // ---------- gallery data (dari database, lihat db.php & panel admin) ----------
+  const galleryData = <?= str_replace('</', '<\/', json_encode($galleryDataJs, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>;
 
   const galleryGrid = document.getElementById('galleryGrid');
   if(galleryGrid){
@@ -1188,7 +1228,7 @@
         </button>`;
       fig.addEventListener('click', (e) => {
         if(e.target.closest('.zoom-hint-mini')) return;
-        triggerPoke(fig, item.tag, e);
+        triggerPoke(fig, item.tag, e, item.name);
       });
       fig.querySelector('.zoom-hint-mini').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1265,7 +1305,7 @@
   const memoryPairs = document.getElementById('memoryPairs');
   const memoryMsg = document.getElementById('memoryMsg');
   const memoryReset = document.getElementById('memoryReset');
-  const PAIR_COUNT = 6;
+  const PAIR_COUNT = Math.max(2, Math.min(6, galleryData.length));
 
   let memState = { flipped: [], matched: 0, moves: 0, locked: false };
 
@@ -1279,9 +1319,7 @@
   }
 
   function buildMemoryDeck(){
-    const castoriceItems = galleryData.filter(g => g.tag === 'castorice');
-    const odetteItems = galleryData.filter(g => g.tag === 'odette');
-    const chosen = shuffleArray(castoriceItems).slice(0,3).concat(shuffleArray(odetteItems).slice(0,3));
+    const chosen = shuffleArray(galleryData).slice(0, PAIR_COUNT);
     const deck = shuffleArray(chosen.concat(chosen).map((item, i) => ({ ...item, uid: i })));
     return deck;
   }
@@ -1290,6 +1328,8 @@
     memState = { flipped: [], matched: 0, moves: 0, locked: false };
     memoryMoves.textContent = '0';
     memoryPairs.textContent = '0';
+    const totalEl = document.getElementById('memoryTotalPairs');
+    if(totalEl) totalEl.textContent = String(PAIR_COUNT);
     memoryMsg.textContent = '';
     memoryGrid.innerHTML = '';
 
