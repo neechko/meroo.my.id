@@ -216,4 +216,9 @@
   .login-box .btn{ width:100%; text-align:center; margin-top:8px; }
 
   .hint{ font-size:0.76rem; color:var(--ink-dim); margin-top:4px; }
+
+  @media (max-width:480px){
+    .wrap{ padding:24px 14px 60px; }
+    .login-box{ margin:8vh auto; padding:30px 22px; max-width:calc(100% - 24px); }
+  }
 </style>

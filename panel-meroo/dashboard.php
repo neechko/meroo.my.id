@@ -109,17 +109,18 @@ $flash = isset($_GET['msg']) && isset($msgMap[$_GET['msg']]) ? $msgMap[$_GET['ms
 
     <div class="card">
       <h2>Semua Gambar (<?= count($galleryItems) ?>)</h2>
+      <div class="table-wrap">
       <table>
         <thead><tr><th>Gambar</th><th>Nama</th><th>Tag</th><th>Favorit</th><th>Urutan</th><th>Aksi</th></tr></thead>
         <tbody>
         <?php foreach ($galleryItems as $item): ?>
           <tr>
-            <td><img src="../<?= e($item['image_path']) ?>" alt=""></td>
-            <td><?= e($item['name']) ?></td>
-            <td><span class="tag-pill">#<?= e($item['tag']) ?></span></td>
-            <td><?= $item['is_featured'] ? '<span class="star">★ ya</span>' : '—' ?></td>
-            <td><?= (int)$item['sort_order'] ?></td>
-            <td class="actions">
+            <td data-label="Gambar"><img src="../<?= e($item['image_path']) ?>" alt=""></td>
+            <td data-label="Nama"><?= e($item['name']) ?></td>
+            <td data-label="Tag"><span class="tag-pill">#<?= e($item['tag']) ?></span></td>
+            <td data-label="Favorit"><?= $item['is_featured'] ? '<span class="star">★ ya</span>' : '—' ?></td>
+            <td data-label="Urutan"><?= (int)$item['sort_order'] ?></td>
+            <td data-label="Aksi" class="actions">
               <a class="btn small secondary" href="dashboard.php?tab=gallery&edit=<?= (int)$item['id'] ?>">Edit</a>
               <form method="post" action="gallery-delete.php" onsubmit="return confirm('Yakin hapus gambar ini?');" style="display:inline;">
                 <?= csrf_field() ?>
@@ -134,6 +135,7 @@ $flash = isset($_GET['msg']) && isset($msgMap[$_GET['msg']]) ? $msgMap[$_GET['ms
         <?php endif; ?>
         </tbody>
       </table>
+      </div>
     </div>
 
   <?php else: ?>
