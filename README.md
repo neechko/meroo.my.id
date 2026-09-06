@@ -49,13 +49,26 @@ https://meroo.my.id/
 meroo.my.id/
 ├── config.php
 ├── index.php
+├── db.php
 ├── assets/
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── includes/
-├── admin/
-└── ...
+├── musik/
+├── panel-meroo/
+│   ├── includes/
+│   │   ├── admin-style.php
+│   │   ├── auth.php
+│   │   └── upload.php
+│   ├── change-password.php
+│   ├── dashboard.php
+│   ├── gallery-delete.php
+│   ├── gallery-save.php
+│   ├── login.php
+│   ├── logout.php
+│   ├── music-delete.php
+│   ├── music-save.php
+│   ├── poke-delete.php
+│   ├── poke-save.php
+│   └── settings-save.php
+└── uploads/
 ```
 
 > Project structure may change as development continues.
