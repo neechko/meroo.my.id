@@ -3,24 +3,31 @@ require_once __DIR__ . '/db.php';
 
 $settings = get_settings($pdo);
 
-// gambar galeri biasa (dipakai grid, tab filter, gacha, memory game)
+// regular gallery images (used by the grid, tab filter, gacha, and memory game)
 $galleryRows = $pdo->query('SELECT * FROM gallery WHERE is_featured = 0 ORDER BY sort_order ASC, id ASC')->fetchAll();
 
-// gambar karakter favorit (section "Tercinta")
+// favorite character images (the "Favorites" section)
 $featuredRows = $pdo->query('SELECT * FROM gallery WHERE is_featured = 1 ORDER BY sort_order ASC, id ASC')->fetchAll();
 $mainFeatured = $featuredRows[0] ?? null;
-$subFeatured  = array_slice($featuredRows, 1, 2);
+$subFeatured  = array_slice($featuredRows, 1, 9); // up to 9 more (10 total featured)
 
-// daftar tag unik untuk tombol filter galeri
+// list of unique tags for the gallery filter buttons
 $tagRows = $pdo->query('SELECT DISTINCT tag FROM gallery WHERE is_featured = 0 ORDER BY tag ASC')->fetchAll();
 
-// data untuk JS (gacha & memory game), path gambar dibuat relatif dari root situs
+// "poke" reaction messages (shown when a character image is clicked), grouped by tag
+$pokeMessages = get_poke_messages($pdo);
+
+// background music playlist
+$musicTracks = get_music_tracks($pdo);
+$musicPathsJs = array_values(array_map(fn($t) => $t['file_path'], $musicTracks));
+
+// data for JS (gacha & memory game), image paths are relative to the site root
 $galleryDataJs = array_map(function ($r) {
     return [
         'src'   => $r['image_path'],
         'tag'   => $r['tag'],
         'name'  => $r['name'],
-        'quote' => $r['quote'] ?: ($r['name'] . ' — koleksi galeri'),
+        'quote' => $r['quote'] ?: ($r['name'] . ' — gallery collection'),
     ];
 }, $galleryRows);
 
@@ -32,27 +39,13 @@ function about_paragraphs(string $text): string {
     }
     return $out;
 }
-
-//untuk menampilkan @username dari link sosial media, misal https://twitter.com/username -> username
-function extractSocialUsername($url) {
-    $path = parse_url($url, PHP_URL_PATH);
-    if (!$path) return '';
-    // Bersihkan slash di awal/akhir
-    $path = trim($path, '/');
-    // Ambil segmen terakhir path (biasanya username)
-    $segments = explode('/', $path);
-    $username = end($segments);
-    // Buang query string kalau ada yg nyangkut, dan decode
-    $username = urldecode($username);
-    return $username;
-}
 ?>
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>meroo — elegi kecil</title>
+<title>meroo — a small elegy</title>
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -361,7 +354,7 @@ function extractSocialUsername($url) {
 
   /* ---------- characters ---------- */
   .char-grid{
-    display:grid; grid-template-columns:1.2fr 1fr; gap:1.6rem;
+    display:grid; grid-template-columns:1.2fr 1fr; gap:1.6rem; align-items:start;
   }
   .char-card{
     position:relative; border-radius:8px; overflow:hidden; border:1px solid var(--line);
@@ -389,12 +382,19 @@ function extractSocialUsername($url) {
   }
   .char-info p{ font-size:0.88rem; color:var(--ink-dim); margin-top:0.4rem; max-width:360px; }
 
-  .char-sub-grid{ display:grid; grid-template-rows:1fr 1fr; gap:1.6rem; }
-  .char-sub-grid .char-card{ min-height:200px; }
+  .char-sub-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:1.2rem;
+    align-content:start;
+  }
+  .char-sub-grid .char-card{ min-height:190px; }
 
   @media (max-width:860px){
     .char-grid{ grid-template-columns:1fr; }
     .char-card{ min-height:340px; }
+  }
+
+  @media (max-width:480px){
+    .char-sub-grid{ grid-template-columns:1fr; }
   }
 
   /* ---------- gallery ---------- */
@@ -736,10 +736,12 @@ function extractSocialUsername($url) {
 <div class="cursor-glow" id="cursorGlow"></div>
 <div class="bg-glow"></div>
 
+<?php if ($musicPathsJs): ?>
 <audio id="bgm" preload="metadata"></audio>
-<button class="music-toggle" id="musicToggle" aria-label="Nyalakan atau matikan musik" aria-pressed="true">
+<button class="music-toggle" id="musicToggle" aria-label="Turn music on or off" aria-pressed="true">
   <span class="bars"><span class="bar"></span><span class="bar"></span><span class="bar"></span></span>
 </button>
+<?php endif; ?>
 
 <div class="moth m1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-.6 3-2.4 4.6-5 5-3 .5-5 3-5 6.2 0 2.6 1.6 3.8 3 3.3.9-.3 1.6-1.4 2-3 .3 1.8 1.4 3.2 3 3.2 1.7 0 2.8-1.4 3.1-3.2.4 1.6 1.1 2.7 2 3 1.4.5 3-.7 3-3.3 0-3.2-2-5.7-5-6.2-2.6-.4-4.4-2-5-5z"/></svg></div>
 <div class="moth m2"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-.6 3-2.4 4.6-5 5-3 .5-5 3-5 6.2 0 2.6 1.6 3.8 3 3.3.9-.3 1.6-1.4 2-3 .3 1.8 1.4 3.2 3 3.2 1.7 0 2.8-1.4 3.1-3.2.4 1.6 1.1 2.7 2 3 1.4.5 3-.7 3-3.3 0-3.2-2-5.7-5-6.2-2.6-.4-4.4-2-5-5z"/></svg></div>
@@ -749,11 +751,11 @@ function extractSocialUsername($url) {
 
 <nav>
   <div class="brand">mer<span>oo__</span></div>
-  <button class="nav-toggle" id="navToggle" aria-label="Buka menu">☰</button>
+  <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
   <div class="nav-links" id="navLinks">
     <a href="#about">About</a>
     <a href="#interests">Interests</a>
-    <a href="#characters">Beloved</a>
+    <a href="#characters">Favorites</a>
     <a href="#gallery">Gallery</a>
     <a href="#connect">Connect</a>
   </div>
@@ -789,7 +791,7 @@ function extractSocialUsername($url) {
   <div class="section-inner">
     <div class="about-grid">
       <div class="about-portrait reveal">
-        <img src="<?= htmlspecialchars($settings['about_image']) ?>" alt="Foto profil / portrait">
+        <img src="<?= htmlspecialchars($settings['about_image']) ?>" alt="Profile photo / portrait">
       </div>
       <div class="about-text reveal">
         <p class="display"><?= htmlspecialchars($settings['about_greeting']) ?></p>
@@ -798,7 +800,7 @@ function extractSocialUsername($url) {
           <span class="tag">genshin impact</span>
           <span class="tag">anime</span>
           <span class="tag">it &amp; programming</span>
-          <span class="tag">honkai: star rail (tp dah pensi)</span>
+          <span class="tag">honkai: star rail (retired now)</span>
         </div>
       </div>
     </div>
@@ -818,28 +820,28 @@ function extractSocialUsername($url) {
 <section id="interests">
   <div class="section-inner">
     <div class="section-head reveal">
-      <div class="eyebrow">what I'm into</div>
-      <h2>Three things I <em>always look</em> forward to</h2>
-      <p>Not in order of priority, just three things that are part of my daily routine — though honestly, the first two win more often lol.</p>
+      <div class="eyebrow">what i spend my time on</div>
+      <h2>Three things I <em>always look forward to</em></h2>
+      <p>Not in order of priority, just three things that make up my daily routine — though honestly, the first two usually win.</p>
     </div>
     <div class="interest-grid">
       <div class="interest-card reveal tilt">
         <div class="num mono">01</div>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 5.8L20 9l-4 4.6L17 20l-5-3-5 3 1-6.4L4 9l5.6-1.2L12 2z"/></svg>
         <h3>Genshin Impact</h3>
-        <p>Exploring Teyvat, collecting characters, and overthinking about the "most meta" build. Odette is definitely my waifu, no debate.</p>
+        <p>Exploring Teyvat, collecting characters, overthinking the "most meta" build. Odette is definitely my waifu, no debate.</p>
       </div>
       <div class="interest-card reveal tilt">
         <div class="num mono">02</div>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg>
         <h3>Watching Anime</h3>
-        <p>From slice of life to the more intense genres. Full list's on my MyAnimeList, just check the link section.</p>
+        <p>From slice of life to the more action-packed genres. The full list is on my MyAnimeList, check the link section below.</p>
       </div>
       <div class="interest-card reveal tilt">
         <div class="num mono">03</div>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 4L2 12l6 8M16 4l6 8-6 8"/></svg>
         <h3>IT &amp; Coding</h3>
-        <p>I enjoy tinkering with small side projects and trying out new things in tech, whenever I have the time (and the motivation).</p>
+        <p>I like tinkering with small side projects and trying new things in tech, whenever I have the time (and the motivation).</p>
       </div>
     </div>
   </div>
@@ -859,8 +861,8 @@ function extractSocialUsername($url) {
   <div class="section-inner">
     <div class="section-head reveal">
       <div class="eyebrow">closest to my heart</div>
-      <h2>My <em>wife</em></h2>
-      <p>So many gacha characters have come and gone, but only a few truly stuck as real favorites.</p>
+      <h2>My <em>Waifu</em></h2>
+      <p>So many gacha characters have come and gone, but only a handful truly stuck as real favorites.</p>
     </div>
     <div class="char-grid">
       <?php if ($mainFeatured):
@@ -868,7 +870,7 @@ function extractSocialUsername($url) {
       ?>
       <div class="char-card reveal" data-char="<?= htmlspecialchars($mainFeatured['tag']) ?>" data-char-name="<?= htmlspecialchars($mainFeatured['name']) ?>" data-caption="<?= htmlspecialchars($cap) ?>">
         <img src="<?= htmlspecialchars($mainFeatured['image_path']) ?>" alt="<?= htmlspecialchars($mainFeatured['name']) ?>">
-        <button class="zoom-hint" type="button" aria-label="Lihat gambar penuh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M9 11h4M11 9v4"/></svg></button>
+        <button class="zoom-hint" type="button" aria-label="View full image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M9 11h4M11 9v4"/></svg></button>
         <div class="char-info">
           <?php if ($mainFeatured['featured_subtitle']): ?><span class="fav"><?= htmlspecialchars($mainFeatured['featured_subtitle']) ?></span><?php endif; ?>
           <h3><?= htmlspecialchars($mainFeatured['name']) ?></h3>
@@ -877,7 +879,7 @@ function extractSocialUsername($url) {
       </div>
       <?php else: ?>
       <div class="char-card reveal" style="align-items:center; justify-content:center; min-height:200px; color:var(--ink-dim); text-align:center; padding:2rem;">
-        Belum ada karakter favorit. Tambahkan lewat panel admin.
+        No favorite characters yet. Add some from the admin panel.
       </div>
       <?php endif; ?>
 
@@ -888,7 +890,7 @@ function extractSocialUsername($url) {
         ?>
         <div class="char-card reveal" data-char="<?= htmlspecialchars($sf['tag']) ?>" data-char-name="<?= htmlspecialchars($sf['name']) ?>" data-caption="<?= htmlspecialchars($capSub) ?>">
           <img src="<?= htmlspecialchars($sf['image_path']) ?>" alt="<?= htmlspecialchars($sf['name']) ?>">
-          <button class="zoom-hint" type="button" aria-label="Lihat gambar penuh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M9 11h4M11 9v4"/></svg></button>
+          <button class="zoom-hint" type="button" aria-label="View full image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M9 11h4M11 9v4"/></svg></button>
           <div class="char-info">
             <?php if ($sf['featured_subtitle']): ?><span class="fav"><?= htmlspecialchars($sf['featured_subtitle']) ?></span><?php endif; ?>
             <h3><?= htmlspecialchars($sf['name']) ?></h3>
@@ -916,8 +918,8 @@ function extractSocialUsername($url) {
   <div class="section-inner">
     <div class="section-head reveal">
       <div class="eyebrow">a collection of memories</div>
-      <h2>Galeri &amp; <em>Gacha</em></h2>
-      <p>A collection of my favorite splash art. Click to see it bigger, or try a wish pull below — guaranteed always 5★.</p>
+      <h2>Gallery &amp; <em>Gacha</em></h2>
+      <p>A collection of my favorite splash art. Click to view it bigger, or try pulling a wish below — guaranteed 5★ every time.</p>
     </div>
 
     <div class="gallery-tabs" id="galleryTabs">
@@ -932,24 +934,24 @@ function extractSocialUsername($url) {
     <?php if (count($galleryDataJs) > 0): ?>
     <div class="gacha-box reveal">
       <div class="gacha-head">
-        <span class="eyebrow" style="margin-bottom:0">a bit of playful wishing</span>
+        <span class="eyebrow" style="margin-bottom:0">a little wishing fun</span>
         <h3>Try Your Luck</h3>
-        <p>Pull a wish and see who shows up from the gallery. No pity system — everyone's already 5★ anyway.</p>
+        <p>Pull one wish and see who shows up from the gallery. No pity system needed — everything is already 5★.</p>
       </div>
       <div class="gacha-stage" id="gachaStage">
         <span class="gacha-placeholder">?</span>
         <img id="gachaImg" src="" alt="">
       </div>
       <div class="gacha-result" id="gachaResult"></div>
-      <button class="gacha-btn" id="gachaBtn" type="button">Pull Wish ✦</button>
+      <button class="gacha-btn" id="gachaBtn" type="button">Pull a Wish ✦</button>
       <div class="gacha-stats mono" id="gachaStats">total pulls: 0</div>
     </div>
 
     <div class="memory-box reveal">
       <div class="memory-head">
-        <span class="eyebrow" style="margin-bottom:0">memory practice</span>
+        <span class="eyebrow" style="margin-bottom:0">a little memory exercise</span>
         <h3>Match the Cards</h3>
-        <p>Flip two cards, find the matching pair. All cards will be revealed once they're all flipped open.</p>
+        <p>Flip two cards, find the matching pair. You'll have guessed every card once they're all revealed.</p>
       </div>
       <div class="memory-stats-row">
         <span class="memory-stat">Moves: <b id="memoryMoves">0</b></span>
@@ -960,7 +962,7 @@ function extractSocialUsername($url) {
       <div class="memory-msg" id="memoryMsg"></div>
     </div>
     <?php else: ?>
-    <p style="color:var(--ink-dim); text-align:center;">Belum ada gambar di galeri. Tambahkan lewat panel admin untuk mengaktifkan gacha &amp; game memori.</p>
+    <p style="color:var(--ink-dim); text-align:center;">No images in the gallery yet. Add some from the admin panel to enable the gacha &amp; memory game.</p>
     <?php endif; ?>
   </div>
 </section>
@@ -979,47 +981,43 @@ function extractSocialUsername($url) {
   <div class="section-inner">
     <div class="section-head reveal">
       <div class="eyebrow">find me here</div>
-      <h2>Let's <em>connect</em></h2>
-      <p>Cards that look dimmed don't have an active link yet, coming soon once they're ready.</p>
+      <h2>Let's <em>Connect</em></h2>
+      <p>Cards that look dim don't have an active link yet — coming soon.</p>
     </div>
     <div class="connect-grid">
       <?php
       $socials = [
-        ['key' => 'social_instagram', 'label' => 'Instagram',   'icon' => '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/>'],
-        ['key' => 'social_github',    'label' => 'GitHub',      'icon' => '<path d="M12 2a10 10 0 0 0-3.16 19.5c.5.1.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.15-1.11-1.46-1.11-1.46-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.56-1.11-4.56-4.93 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.3 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.83-2.34 4.68-4.57 4.92.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z" fill="currentColor"/>', 'filled' => true],
-        ['key' => 'social_mal',       'label' => 'MyAnimeList', 'icon' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15V9l2.5 3L12 9v6M15 9v6h3"/>'],
-        ['key' => 'social_spotify',   'label' => 'Spotify',     'icon' => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>'],
-        ['key' => 'social_steam',     'label' => 'Steam',       'icon' => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/>'],
-        ['key' => 'social_x',         'label' => 'X (Twitter)', 'icon' => '<path d="M4 4l7.5 8.5L4 21h2.4l6-6.8 4.9 6.8H21l-7.9-9.3L20.6 4h-2.4l-5.5 6.2L7.4 4H4z" fill="currentColor" stroke="none"/>'],
+        ['key' => 'social_instagram', 'handle_key' => 'social_instagram_handle', 'label' => 'Instagram',   'icon' => '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/>'],
+        ['key' => 'social_github',    'handle_key' => 'social_github_handle',    'label' => 'GitHub',      'icon' => '<path d="M12 2a10 10 0 0 0-3.16 19.5c.5.1.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.15-1.11-1.46-1.11-1.46-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.56-1.11-4.56-4.93 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.3 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.83-2.34 4.68-4.57 4.92.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z" fill="currentColor"/>', 'filled' => true],
+        ['key' => 'social_mal',       'handle_key' => 'social_mal_handle',       'label' => 'MyAnimeList', 'icon' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15V9l2.5 3L12 9v6M15 9v6h3"/>'],
+        ['key' => 'social_spotify',   'handle_key' => 'social_spotify_handle',   'label' => 'Spotify',     'icon' => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>'],
+        ['key' => 'social_steam',     'handle_key' => 'social_steam_handle',     'label' => 'Steam',       'icon' => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/>'],
+        ['key' => 'social_x',         'handle_key' => 'social_x_handle',         'label' => 'X (Twitter)', 'icon' => '<path d="M4 4l7.5 8.5L4 21h2.4l6-6.8 4.9 6.8H21l-7.9-9.3L20.6 4h-2.4l-5.5 6.2L7.4 4H4z" fill="currentColor" stroke="none"/>'],
       ];
       foreach ($socials as $s):
-          $url = trim($settings[$s['key']] ?? '');
-          $hasUrl = $url !== '';
-          $fillAttr = !empty($s['filled']) ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.5"';
-          $username = $hasUrl ? extractSocialUsername($url) : '';
+        $url = trim($settings[$s['key']] ?? '');
+        $hasUrl = $url !== '';
+        $handle = trim($settings[$s['handle_key']] ?? '');
+        $fillAttr = !empty($s['filled']) ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.5"';
       ?>
       <?php if ($hasUrl): ?>
       <a class="connect-card reveal" href="<?= htmlspecialchars($url) ?>" target="_blank" rel="noopener noreferrer">
-          <svg class="icon" viewBox="0 0 24 24" <?= $fillAttr ?>><?= $s['icon'] ?></svg>
-          <div class="meta">
-              <span class="label"><?= htmlspecialchars($s['label']) ?></span>
-              <span class="handle"><?= $username !== '' ? htmlspecialchars('@' . $username) : 'buka tautan' ?></span>
-          </div>
+        <svg class="icon" viewBox="0 0 24 24" <?= $fillAttr ?>><?= $s['icon'] ?></svg>
+        <div class="meta"><span class="label"><?= htmlspecialchars($s['label']) ?></span><span class="handle"><?= $handle !== '' ? htmlspecialchars($handle) : 'open link' ?></span></div>
       </a>
       <?php else: ?>
       <div class="connect-card disabled reveal" aria-disabled="true">
-          <svg class="icon" viewBox="0 0 24 24" <?= $fillAttr ?>><?= $s['icon'] ?></svg>
-          <div class="meta"><span class="label"><?= htmlspecialchars($s['label']) ?></span><span class="handle">segera hadir</span></div>
+        <svg class="icon" viewBox="0 0 24 24" <?= $fillAttr ?>><?= $s['icon'] ?></svg>
+        <div class="meta"><span class="label"><?= htmlspecialchars($s['label']) ?></span><span class="handle">coming soon</span></div>
       </div>
       <?php endif; ?>
       <?php endforeach; ?>
-      
     </div>
   </div>
 </section>
 
-<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Pratinjau gambar karakter">
-  <button class="lightbox-close" id="lightboxClose" aria-label="Tutup pratinjau">
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Character image preview">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Close preview">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 5l14 14M19 5L5 19"/></svg>
   </button>
   <img id="lightboxImg" src="" alt="">
@@ -1139,28 +1137,15 @@ function extractSocialUsername($url) {
   window.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeLightbox(); });
 
   // ---------- poke / head-pat reaction ----------
-  const pokeLines = {
-    castorice: [
-      "he? ...ada apa?",
-      "jangan sering-sering nyentuh, nanti kebiasaan.",
-      "hm. lumayan, boleh lanjut.",
-      "...jangan bikin aku ketawa di depan orang.",
-      "sekali lagi juga nggak apa-apa, kok.",
-      "kamu ini... lucu juga ternyata."
-    ],
-    odette: [
-      "eh?! kaget aku tau!",
-      "hihi, geli~ tapi boleh lagi.",
-      "ada perlu apa, hm?",
-      "jangan keseringan ya, nanti aku manja.",
-      "kamu selalu begini deh tiap ketemu.",
-      "oke, aku maafin. tapi cuma kali ini~"
-    ]
-  };
+  // These messages can be edited from the admin panel (tab "Poke Messages")
+  const pokeLines = <?= str_replace('</', '<\/', json_encode($pokeMessages, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>;
+  const FALLBACK_POKE_LINES = ["hm? ...what is it?", "heh, not bad, I suppose."];
   let lastPoke = {};
 
   function pickPokeLine(charKey){
-    const pool = pokeLines[charKey] || pokeLines.castorice;
+    const pool = (pokeLines[charKey] && pokeLines[charKey].length ? pokeLines[charKey] : null)
+      || (pokeLines.default && pokeLines.default.length ? pokeLines.default : null)
+      || FALLBACK_POKE_LINES;
     let line;
     do{ line = pool[Math.floor(Math.random() * pool.length)]; }
     while(pool.length > 1 && line === lastPoke[charKey]);
@@ -1209,7 +1194,7 @@ function extractSocialUsername($url) {
     });
   });
 
-  // ---------- gallery data (dari database, lihat db.php & panel admin) ----------
+  // ---------- gallery data (from the database, see db.php & the admin panel) ----------
   const galleryData = <?= str_replace('</', '<\/', json_encode($galleryDataJs, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>;
 
   const galleryGrid = document.getElementById('galleryGrid');
@@ -1219,11 +1204,11 @@ function extractSocialUsername($url) {
       fig.className = 'gallery-item';
       fig.style.animationDelay = (i * 0.04) + 's';
       fig.dataset.tag = item.tag;
-      fig.dataset.caption = `${item.name} — koleksi galeri`;
+      fig.dataset.caption = `${item.name} — gallery collection`;
       fig.innerHTML = `
-        <img src="${item.src}" alt="${item.name}, koleksi galeri" loading="lazy">
+        <img src="${item.src}" alt="${item.name}, gallery collection" loading="lazy">
         <span class="tag-mini">${item.name}</span>
-        <button class="zoom-hint-mini" type="button" aria-label="Lihat gambar penuh">
+        <button class="zoom-hint-mini" type="button" aria-label="View full image">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M9 11h4M11 9v4"/></svg>
         </button>`;
       fig.addEventListener('click', (e) => {
@@ -1232,7 +1217,7 @@ function extractSocialUsername($url) {
       });
       fig.querySelector('.zoom-hint-mini').addEventListener('click', (e) => {
         e.stopPropagation();
-        openLightbox(item.src, `${item.name}, koleksi galeri`, fig.dataset.caption);
+        openLightbox(item.src, `${item.name}, gallery collection`, fig.dataset.caption);
       });
       galleryGrid.appendChild(fig);
     });
@@ -1288,7 +1273,7 @@ function extractSocialUsername($url) {
 
       pullCount++;
       localStorage.setItem('meroo_gacha_pulls', String(pullCount));
-      gachaStats.textContent = `total tarikan: ${pullCount}`;
+      gachaStats.textContent = `total pulls: ${pullCount}`;
 
       gachaResult.innerHTML = `
         <div class="stars">★★★★★</div>
@@ -1370,7 +1355,7 @@ function extractSocialUsername($url) {
         memoryPairs.textContent = String(memState.matched);
         memState.flipped = [];
         if(memState.matched === PAIR_COUNT){
-          memoryMsg.textContent = `Semua kepasangkan dalam ${memState.moves} langkah — mantap!`;
+          memoryMsg.textContent = `All matched in ${memState.moves} moves — nice!`;
         }
       } else {
         memState.locked = true;
@@ -1387,14 +1372,16 @@ function extractSocialUsername($url) {
   memoryReset?.addEventListener('click', renderMemoryGame);
   if(memoryGrid) renderMemoryGame();
 
-  // ---------- musik latar (playlist) ----------
+  // ---------- background music (playlist) ----------
   const bgm = document.getElementById('bgm');
   const musicToggle = document.getElementById('musicToggle');
 
-  // Tinggal tambah/kurangi nama file di sini kalau mau nambah lagu lain
-  const playlist = ['musik/lagu1.m4a', 'musik/lagu2.mp3', 'musik/lagu3.mp3'];
+  // Playlist is managed from the admin panel (Music tab), not edited here
+  const playlist = <?= json_encode($musicPathsJs, JSON_UNESCAPED_SLASHES) ?>;
   let trackIndex = 0;
   let skipCount = 0;
+
+  if(bgm && musicToggle && playlist.length > 0){
 
   function setPausedUI(isPaused){
     musicToggle.classList.toggle('paused', isPaused);
@@ -1411,7 +1398,7 @@ function extractSocialUsername($url) {
     const p = bgm.play();
     if(p !== undefined){
       p.then(() => setPausedUI(false)).catch(() => {
-        // Browser memblokir autoplay, tunggu interaksi pertama
+        // Browser blocked autoplay, wait for first interaction
         setPausedUI(true);
         const resume = () => {
           bgm.play().then(() => setPausedUI(false)).catch(() => {});
@@ -1428,7 +1415,7 @@ function extractSocialUsername($url) {
     }
   }
 
-  // Kalau file lagu di trackIndex ini nggak ketemu (404 dll), otomatis loncat ke lagu berikutnya
+  // If the track at trackIndex can't be found (404 etc), skip to the next one automatically
   bgm.addEventListener('error', () => {
     skipCount++;
     if(skipCount < playlist.length){
@@ -1436,15 +1423,15 @@ function extractSocialUsername($url) {
       loadCurrentTrack();
       playCurrent();
     }
-    // kalau semua lagu di playlist nggak ketemu, diam saja (nggak ada yang bisa diputar)
+    // if every track in the playlist fails, stay silent (nothing to play)
   });
 
-  // Track ini valid, reset penghitung supaya siklus berikutnya bisa dicoba lagi dari awal
+  // This track is valid, reset the counter so the next cycle can be retried from the start
   bgm.addEventListener('canplay', () => {
     skipCount = 0;
   });
 
-  // Lagu selesai, otomatis lanjut ke lagu berikutnya (muter ulang dari awal kalau sudah habis)
+  // Track finished, automatically move to the next one (loops back to the start when done)
   bgm.addEventListener('ended', () => {
     trackIndex = (trackIndex + 1) % playlist.length;
     loadCurrentTrack();
@@ -1463,6 +1450,8 @@ function extractSocialUsername($url) {
       setPausedUI(true);
     }
   });
+
+  } // end if(bgm && musicToggle && playlist.length > 0)
 </script>
 
 </body>

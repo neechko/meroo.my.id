@@ -30,7 +30,7 @@ function csrf_verify(): void {
     $token = $_POST['csrf_token'] ?? '';
     if (!$token || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
         http_response_code(403);
-        die('Sesi tidak valid (CSRF check gagal). Silakan kembali dan coba lagi.');
+        die('Invalid session (CSRF check failed). Please go back and try again.');
     }
 }
 

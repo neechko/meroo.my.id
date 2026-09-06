@@ -11,12 +11,12 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
 
-    // Rate limiting sederhana berbasis session
+    // Simple session-based rate limiting
     $_SESSION['login_attempts'] = $_SESSION['login_attempts'] ?? 0;
     $_SESSION['login_last_try'] = $_SESSION['login_last_try'] ?? 0;
 
     if ($_SESSION['login_attempts'] >= 5 && (time() - $_SESSION['login_last_try']) < 60) {
-        $error = 'Terlalu banyak percobaan gagal. Coba lagi dalam 1 menit.';
+        $error = 'Too many failed attempts. Try again in 1 minute.';
     } else {
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
@@ -35,24 +35,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $_SESSION['login_attempts']++;
             $_SESSION['login_last_try'] = time();
-            $error = 'Username atau password salah.';
+            $error = 'Incorrect username or password.';
         }
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masuk — Admin</title>
+<title>Log In — Admin</title>
 <meta name="robots" content="noindex, nofollow">
 <?php require __DIR__ . '/includes/admin-style.php'; ?>
 </head>
 <body>
   <div class="login-box">
-    <h1>Panel Admin</h1>
-    <p class="sub">meroo__ portofolio</p>
+    <h1>Admin Panel</h1>
+    <p class="sub">meroo__ portfolio</p>
     <?php if ($error): ?><div class="msg err"><?= e($error) ?></div><?php endif; ?>
     <form method="post" autocomplete="off">
       <?= csrf_field() ?>
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="text" id="username" name="username" required autofocus>
       <label for="password">Password</label>
       <input type="password" id="password" name="password" required>
-      <button class="btn" type="submit" style="width:100%; margin-top:20px;">Masuk</button>
+      <button class="btn" type="submit" style="width:100%; margin-top:20px;">Log In</button>
     </form>
   </div>
 </body>

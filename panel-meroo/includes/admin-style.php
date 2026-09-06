@@ -190,6 +190,8 @@
     }
     td img{ width:64px; height:64px; margin-left:auto; }
     td:has(img){ justify-content:space-between; }
+    td:has(audio){ flex-direction:column; align-items:flex-start; gap:6px; }
+    td audio{ width:100%; }
     .actions{ justify-content:flex-end; width:100%; }
   }
 

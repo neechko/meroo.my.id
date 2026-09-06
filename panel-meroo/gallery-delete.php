@@ -16,7 +16,7 @@ if ($id) {
     if ($item) {
         $del = $pdo->prepare('DELETE FROM gallery WHERE id = ?');
         $del->execute([$id]);
-        // hapus file fisik hanya jika berada di folder uploads (jangan hapus file di /assets bawaan tema)
+        // only delete the physical file if it lives in the uploads folder (never delete bundled theme files in /assets)
         if (strpos($item['image_path'], 'uploads/') === 0) {
             @unlink(__DIR__ . '/../' . $item['image_path']);
         }

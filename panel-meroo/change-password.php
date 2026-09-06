@@ -16,25 +16,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $admin = $stmt->fetch();
 
     if (!$admin || !password_verify($current, $admin['password_hash'])) {
-        $error = 'Password saat ini salah.';
+        $error = 'Current password is incorrect.';
     } elseif (strlen($new) < 6) {
-        $error = 'Password baru minimal 6 karakter.';
+        $error = 'New password must be at least 6 characters.';
     } elseif ($new !== $confirm) {
-        $error = 'Konfirmasi password baru tidak cocok.';
+        $error = 'New password confirmation does not match.';
     } else {
         $newHash = password_hash($new, PASSWORD_DEFAULT);
         $upd = $pdo->prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?');
         $upd->execute([$newHash, $admin['id']]);
-        $success = 'Password berhasil diubah.';
+        $success = 'Password changed successfully.';
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ganti Password — Admin</title>
+<title>Change Password — Admin</title>
 <meta name="robots" content="noindex, nofollow">
 <?php require __DIR__ . '/includes/admin-style.php'; ?>
 </head>
@@ -42,26 +42,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="topbar">
   <div class="brand">mer<span>oo__</span> · admin</div>
   <nav>
-    <a href="dashboard.php?tab=gallery">Galeri</a>
-    <a href="dashboard.php?tab=settings">Pengaturan Situs</a>
-    <a href="change-password.php" class="active">Ganti Password</a>
-    <a href="logout.php">Keluar</a>
+    <a href="dashboard.php?tab=gallery">Gallery</a>
+    <a href="dashboard.php?tab=poke">Poke Messages</a>
+    <a href="dashboard.php?tab=music">Music</a>
+    <a href="dashboard.php?tab=settings">Site Settings</a>
+    <a href="change-password.php" class="active">Change Password</a>
+    <a href="../index.php" target="_blank">View Site ↗</a>
+    <a href="logout.php">Log Out</a>
   </nav>
 </div>
 <div class="wrap" style="max-width:480px;">
   <div class="card">
-    <h2>Ganti Password</h2>
+    <h2>Change Password</h2>
     <?php if ($error): ?><div class="msg err"><?= e($error) ?></div><?php endif; ?>
     <?php if ($success): ?><div class="msg ok"><?= e($success) ?></div><?php endif; ?>
     <form method="post">
       <?= csrf_field() ?>
-      <label>Password Saat Ini</label>
+      <label>Current Password</label>
       <input type="password" name="current_password" required>
-      <label>Password Baru</label>
+      <label>New Password</label>
       <input type="password" name="new_password" required>
-      <label>Konfirmasi Password Baru</label>
+      <label>Confirm New Password</label>
       <input type="password" name="confirm_password" required>
-      <button class="btn" type="submit" style="margin-top:20px;">Simpan Password Baru</button>
+      <button class="btn" type="submit" style="margin-top:20px;">Save New Password</button>
     </form>
   </div>
 </div>
